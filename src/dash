@@ -1,0 +1,129 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import signal
+import datetime
+import subprocess
+
+from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QPushButton, QGridLayout
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QFont, QIcon
+
+app = QApplication(sys.argv)
+
+
+def greeting(hour):
+	if hour<4:
+		return 'Go to bed'
+	elif hour<=11:
+		return 'Good morning'
+	elif hour<=17:
+		return 'Good afternoon'
+	elif hour<=23:
+		return 'Good evening'
+
+def signal_handler(sig, frame):
+	print('You pressed Ctrl-C')
+	sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
+def execute_command(command):
+	subprocess.Popen(command, shell=True, start_new_session=True)
+
+def sleep_button_clicked():
+	print("Sleep Button clicked!")
+	output = execute_command("xscreensaver-command -activate")
+	print(output)
+
+def weather_button_clicked():
+	print("WeatherButton clicked!")
+	output = execute_command("chromium-browser https://www.bbc.co.uk/weather/2649738")
+	print(output)
+
+font = QFont()
+font.setPointSize(20)
+
+larger_font = QFont()
+larger_font.setPointSize(30)
+
+largest_font = QFont()
+largest_font.setPointSize(50)
+
+class DashWindow(QWidget):
+	def __init__(self):
+		super().__init__()
+		self.setWindowTitle("Dash")
+
+		self.date = QLabel("")
+		self.time = QLabel("")
+		self.greeting = QLabel("")
+		self.body = QLabel("")
+
+		self.date.setFont(larger_font)
+		self.time.setFont(largest_font)
+		self.greeting.setFont(font)
+		self.body.setFont(font)
+
+		self.date.setAlignment(Qt.AlignCenter)
+		self.time.setAlignment(Qt.AlignCenter)
+		self.greeting.setAlignment(Qt.AlignCenter)
+
+		button = QPushButton("Sleep")
+		button.setGeometry(50,50,200,100)
+		button.setIcon(QIcon('./sleep-timer.png'))
+		button.clicked.connect(sleep_button_clicked)
+		button.setFont(font)
+
+		button2= QPushButton("Weather")
+		button2.setGeometry(280,50,200,100)
+		button2.setIcon(QIcon('./weather-identifier.png'))
+		button2.clicked.connect(weather_button_clicked)
+		button2.setFont(font)
+
+		button3 = QPushButton("Exit")
+		button3.setGeometry(510,50,200,100)
+		button3.setIcon(QIcon('./exit.png'))
+		button3.clicked.connect(QApplication.instance().exit)
+		button3.setFont(font)
+
+		grid_layout = QGridLayout()
+		grid_layout.addWidget(self.date, 0, 0, 3, 0)
+		grid_layout.addWidget(self.time, 1, 0, 3, 0)
+		grid_layout.addWidget(self.greeting, 2, 0, 3, 0)
+		grid_layout.addWidget(self.body, 3, 0)
+		grid_layout.addWidget(button, 4, 0)
+		grid_layout.addWidget(button2, 4, 1)
+		grid_layout.addWidget(button3, 4, 2)
+
+		self.setLayout(grid_layout)
+
+		#initial setup
+		self.update_labels
+
+		#hide mouse
+		self.setCursor(Qt.BlankCursor)
+
+
+		#update with clock
+		self.timer = QTimer(self)
+		self.timer.timeout.connect(self.update_labels)
+		self.timer.start(1000)  # Update every 1 second
+
+	def update_labels(self):
+		now = datetime.datetime.now()
+		formatted_date = now.strftime("%A %-d %B")
+		formatted_time = now.strftime("%H:%M")
+		hour = int(now.strftime("%-H"))
+		formatted_greeting = greeting(hour) + ", Ali"
+		self.date.setText(formatted_date);
+		self.time.setText(formatted_time);
+		self.greeting.setText(formatted_greeting);
+
+window = DashWindow()
+
+#window.show()
+window.showFullScreen()
+
+sys.exit(app.exec_())
